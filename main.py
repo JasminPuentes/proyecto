@@ -19,6 +19,7 @@ from nltk.corpus import wordnet #wordnet es una base de datos de sinonimos de un
 nltk.data.path.append (r'C:\Users\Jazz\AppData\Roaming\nltk_data')
 nltk.download('punkt') # Es un paquete para dividir frases en palabras
 nltk.download('wordnet') # Paquete para encontrar sinónimos en palabras
+nltk.download('punkt_tab')
 
 # Función para cargar las películas desde un archivo csv
 
@@ -38,7 +39,7 @@ movies_list = load_movies()
 # Función para encontrar sinonimos de una palabra
 def get_synonyms(word): 
     # Usamos wordnet para encontrar distintas palabras que significan lo mismo
-    return{lemma.name().lower() for syn in wordnet.synset(word) for lemma in syn.lemmas()}
+    return{lemma.name().lower() for syn in wordnet.synsets(word) for lemma in syn.lemmas()}
 
 # Creamos la aplicación FastAPI, que será el motor de nuestra API
 # Esto inicializa la API con un nombre y una versión
@@ -63,3 +64,20 @@ def get_movie(id: str):
     # Buscamos en la lista de peliculas la que tenga el mismo ID
     return next((m for m in movies_list if m ['id'] == id), {"detalle": "pelicula no encontrada"})
     
+    #Ruta del chatbot que responde con peliculas sugun palabras clave de la categoria
+@app.get('/chatbot' , tags=['Chatbot'])
+def chatbot(query: str):
+    #dividimos la consulta en palabras clave, para entender mejor la intencion del usuario
+    query_words = word_tokenize(query.lower())
+    #buscamos sinonimos de las palabras clave para ampliar la busqueda
+    synonyms = {word for q in query_words for word in get_synonyms(q)} | set(query_words) 
+    
+    #Filtramos la lista de peliculas buscando coincidencias en la categoria 
+    results = [m for m in movies_list if any(s in m['category'].lower() for s in synonyms)]
+    
+    # Si encontramos las peliculas, enviamos la lista de peliculas; si no, enviamos un mensaje de que no se encontraron coincidencias
+    
+    return JSONResponse (content={
+        "respuesta": "aqui tienes algunas peliculas relacionadas." if results else "no encontre peliculas en esa catgoria.",
+        "peliculas": results 
+    })
