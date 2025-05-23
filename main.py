@@ -81,3 +81,9 @@ def chatbot(query: str):
         "respuesta": "aqui tienes algunas peliculas relacionadas." if results else "no encontre peliculas en esa catgoria.",
         "peliculas": results 
     })
+
+#ruta para buscar peliculas por categoria especifica
+@app.get('/movies/', tags=['Movies'])
+def get_movies_by_category(category: str):
+    # Filtramos la lista de peliculas segun la categoria ingresada
+    return [m for m in movies_list if category.lower() in m['category'].lower()] 
